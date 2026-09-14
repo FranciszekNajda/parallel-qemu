@@ -164,10 +164,10 @@ static void dynamic_barrier_polling_acquire_lock(dynamic_barrier_polling_t *barr
     // for a full peer-roundtrip and N-1 waiters would burn host cores. Every other wait (single
     // node: engine==NULL; multi-node outside a pause) keeps the original pure spin, so existing
     // PWQ paths are untouched.
-    PDESEngine *engine = get_singleton_engine();
+    bool multi_node = pdes_link_count() > 0;
     uint64_t spins = 0;
     while (atomic_load(&barrier->lock.now_serving) != my_ticket) {
-        if (engine && qatomic_read(&engine->paused)) {
+        if (multi_node && pdes_engine_paused()) {
             cpu_relax();
             if (++spins == 10000) { sched_yield(); spins = 0; }
         }
@@ -204,9 +204,8 @@ uint32_t dynamic_barrier_polling_wait(dynamic_barrier_polling_t *barrier, uint32
         /* MNQ cooperative pause: leader holds the global clock while engine->paused. Longest
          * wait in the system (a full peer-roundtrip) — relax/yield frees the host core with no
          * semantic change: the clock only advances after this loop, so the guest stays frozen. */
-        PDESEngine *engine = get_singleton_engine();
         uint64_t pause_spins = 0;
-        while (engine && qatomic_read(&engine->paused)) {
+        while (pdes_engine_paused()) {
             if (!runstate_is_running()) {
                 *stop_request = 2;
                 dynamic_barrier_polling_release_lock(barrier);

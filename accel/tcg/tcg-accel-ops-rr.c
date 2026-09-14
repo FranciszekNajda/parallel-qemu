@@ -324,8 +324,7 @@ static void *rr_cpu_thread_fn(void *arg)
             }
 
             /* MNQ cooperative pause: zero the per-round budget while engine->paused. */
-            PDESEngine *engine = get_singleton_engine();
-            if (engine && qatomic_read(&engine->paused)) {
+            if (pdes_engine_paused()) {
                 cpu_budget = 0;
             }
         }

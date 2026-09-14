@@ -235,12 +235,11 @@ bool qemu_plugin_register_flushing_local_tlb_cb(
 }
 
 static void do_notify_fully_warmed_bh(void *opaque) {
-  PDESEngine *engine = opaque;
-  if (engine == NULL) {
+  if (pdes_link_count() == 0) {
     save_snapshot("init_warmed", true, NULL, false, NULL, SNAPSHOT_FORMAT_EXTERNAL_INCREMENTAL_BASE, NULL);
     exit(0);  /* single-node: snapshot written synchronously above; clean-exit like the multi-node master does after init_warmed */
   } else {
-    finish_initiate_checkpoint(engine);
+    finish_initiate_checkpoint();
   }
 }
 
@@ -248,7 +247,7 @@ static void do_notify_fully_warmed_bh(void *opaque) {
 void qemu_plugin_notify_fully_warmed(void){
   aio_bh_schedule_oneshot(qemu_get_aio_context(),
                           do_notify_fully_warmed_bh,
-                          get_singleton_engine());
+                          NULL);
 }
 
 /* FW periodic-snapshot run complete (replaces the plugin's own exit(0)). Single-node (no engine):
@@ -257,9 +256,8 @@ void qemu_plugin_notify_fully_warmed(void){
  * boundary and then drives a coordinated exit (CTRL_CKP_FINAL -> CTRL_READY/CTRL_CLEANUP), so we
  * just arm that on the master and return — exiting now would drop the last checkpoint (999-vs-1000). */
 void qemu_plugin_pdes_fw_complete(void){
-  PDESEngine *engine = get_singleton_engine();
-  if (engine == NULL) exit(0);
-  if (engine->master) engine->fw_exit_after_checkpoint = true;
+  if (pdes_link_count() == 0) exit(0);
+  pdes_engine_fw_complete();
 }
 
 

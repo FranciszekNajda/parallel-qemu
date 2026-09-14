@@ -329,11 +329,7 @@ void icount_start_warp_timer(void)
     if (replay_mode != REPLAY_MODE_PLAY) {
         // TODO : this is running on main loop so no race condition but later on we should add locks for flags on flexus_api
         // If all cpus are paused, but flexus is not, icount will be progressed by it so there is no ned for warping due to hlt
-        bool pdes_paused = false;
-        PDESEngine* engine = get_singleton_engine();
-        if (engine != NULL) {
-            pdes_paused = qatomic_read(&engine->paused);
-        }
+        bool pdes_paused = pdes_engine_paused();
         if (!all_cpu_threads_idle()) {
             return;
         }
