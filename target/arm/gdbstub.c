@@ -492,6 +492,10 @@ const char *arm_gdb_get_dynamic_xml(CPUState *cs, const char *xmlname)
         return cpu->dyn_sysreg_xml.desc;
     } else if (strcmp(xmlname, "sve-registers.xml") == 0) {
         return cpu->dyn_svereg_xml.desc;
+#ifndef CONFIG_USER_ONLY
+    } else if (strcmp(xmlname, "gem5-sysregs.xml") == 0) {
+        return cpu->dyn_gem5reg_xml.desc;
+#endif
     } else if (strcmp(xmlname, "arm-m-system.xml") == 0) {
         return cpu->dyn_m_systemreg_xml.desc;
 #ifndef CONFIG_USER_ONLY
@@ -562,6 +566,14 @@ void arm_cpu_register_gdb_regs_for_features(ARMCPU *cpu)
     gdb_register_coprocessor(cs, arm_gdb_get_sysreg, arm_gdb_set_sysreg,
                              arm_gen_dynamic_sysreg_xml(cs, cs->gdb_num_regs),
                              "system-registers.xml", 0);
+
+#ifndef CONFIG_USER_ONLY
+    if (arm_feature(env, ARM_FEATURE_AARCH64)) {
+        gdb_register_coprocessor(cs, arm_gdb_get_gem5reg, arm_gdb_set_gem5reg,
+                                arm_gen_dynamic_gem5reg_xml(cs, cs->gdb_num_regs),
+                                "gem5-sysregs.xml", 0);
+    }
+#endif
 
 #ifdef CONFIG_TCG
     if (arm_feature(env, ARM_FEATURE_M) && tcg_enabled()) {

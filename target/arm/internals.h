@@ -1524,4 +1524,9 @@ bool check_watchpoint_in_range(int i, target_ulong addr);
 CPUWatchpoint *find_hw_watchpoint(CPUState *cpu, target_ulong addr);
 int insert_hw_watchpoint(target_ulong addr, target_ulong len, int type);
 int delete_hw_watchpoint(target_ulong addr, target_ulong len, int type);
+
+/* QFlex: extra system registers exported for gem5 checkpoints */
+int arm_gen_dynamic_gem5reg_xml(CPUState *cs, int base_reg);
+int arm_gdb_get_gem5reg(CPUARMState *env, GByteArray *buf, int reg);
+int arm_gdb_set_gem5reg(CPUARMState *env, uint8_t *buf, int reg);
 #endif

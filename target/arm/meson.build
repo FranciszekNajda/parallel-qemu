@@ -22,6 +22,7 @@ arm_system_ss.add(files(
   'arm-powerctl.c',
   'arm-qmp-cmds.c',
   'cortex-regs.c',
+  'gem5-sysregs.c',
   'machine.c',
   'ptw.c',
 ))
