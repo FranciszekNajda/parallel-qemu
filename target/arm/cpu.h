@@ -887,7 +887,7 @@ struct ArchCPU {
     DynamicGDBXMLInfo dyn_svereg_xml;
     DynamicGDBXMLInfo dyn_m_systemreg_xml;
     DynamicGDBXMLInfo dyn_m_secextreg_xml;
-    DynamicGDBXMLInfo dyn_gem5reg_xml;      /* QFlex: extra regs for gem5 */
+    DynamicGDBXMLInfo dyn_qflexreg_xml;      /* QFlex: extra system registers */
 
     /* Timers used by the generic (architected) timer */
     QEMUTimer *gt_timer[NUM_GTIMERS];
