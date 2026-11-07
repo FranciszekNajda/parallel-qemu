@@ -1115,6 +1115,9 @@ struct ArchCPU {
 
     /* Generic timer counter frequency, in Hz */
     uint64_t gt_cntfrq_hz;
+
+    /* QFlex: path of the id-overrides file, NULL if none */
+    char *id_overrides;
 };
 
 unsigned int gt_cntfrq_period_ns(ARMCPU *cpu);

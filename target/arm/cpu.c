@@ -49,6 +49,7 @@
 #include "fpu/softfloat.h"
 #include "cpregs.h"
 #include "sysemu/quantum.h"
+#include "id-overrides.h"
 
 static void arm_cpu_set_pc(CPUState *cs, vaddr value)
 {
@@ -1359,6 +1360,52 @@ unsigned int gt_cntfrq_period_ns(ARMCPU *cpu)
       NANOSECONDS_PER_SECOND / cpu->gt_cntfrq_hz : 1;
 }
 
+/*
+ * QFlex: the "id-overrides" CPU property (-cpu <model>,id-overrides=<file>).
+ *
+ * These two functions are the getter and setter that QOM (QEMU's object
+ * model) calls for the property, which is registered for every AArch64 CPU
+ * in arm_cpu_post_init() with object_property_add_str(). They only store the
+ * path of the file in cpu->id_overrides; the file itself is read and applied
+ * later, by arm_cpu_apply_id_overrides() (id-overrides.c), called from
+ * arm_cpu_realizefn().
+ */
+
+/*
+ * Getter: return the current path, e.g. for "info qom-get" or
+ * query-cpu-model-expansion. QOM frees the returned string, so it must be a
+ * copy; g_strdup(NULL) returns NULL when the property was never set.
+ */
+static char *arm_cpu_get_id_overrides(Object *obj, Error **errp)
+{
+    return g_strdup(ARM_CPU(obj)->id_overrides);
+}
+
+/*
+ * Setter: called when -cpu is parsed, before the CPU is realized.
+ * The ID registers are fixed when the CPU is realized (the guest-visible
+ * system registers are created from cpu->isar at that point), so changing
+ * the file afterwards would have no effect: refuse it instead of silently
+ * ignoring it.
+ */
+static void arm_cpu_set_id_overrides(Object *obj, const char *value,
+                                     Error **errp)
+{
+    ARMCPU *cpu = ARM_CPU(obj);
+
+    if (DEVICE(obj)->realized) {
+        error_setg(errp, "id-overrides cannot be changed after realize");
+        return;
+    }
+    /*
+     * Keep our own copy of the string (QOM keeps ownership of value).
+     * Free the previous one if the property is set more than once;
+     * the last copy is freed in arm_cpu_finalizefn().
+     */
+    g_free(cpu->id_overrides);
+    cpu->id_overrides = g_strdup(value);
+}
+
 void arm_cpu_post_init(Object *obj)
 {
     ARMCPU *cpu = ARM_CPU(obj);
@@ -1500,6 +1547,11 @@ void arm_cpu_post_init(Object *obj)
         kvm_arm_add_vcpu_properties(obj);
     }
 
+    if (arm_feature(&cpu->env, ARM_FEATURE_AARCH64)) {
+        object_property_add_str(obj, "id-overrides", arm_cpu_get_id_overrides,
+                                arm_cpu_set_id_overrides);
+    }
+
 #ifndef CONFIG_USER_ONLY
     if (arm_feature(&cpu->env, ARM_FEATURE_AARCH64) &&
         cpu_isar_feature(aa64_mte, cpu)) {
@@ -1526,6 +1578,7 @@ static void arm_cpu_finalizefn(Object *obj)
     ARMELChangeHook *hook, *next;
 
     g_hash_table_destroy(cpu->cp_regs);
+    g_free(cpu->id_overrides);
 
     QLIST_FOREACH_SAFE(hook, &cpu->pre_el_change_hooks, node, next) {
         QLIST_REMOVE(hook, node);
@@ -2219,6 +2272,16 @@ static void arm_cpu_realizefn(DeviceState *dev, Error **errp)
 
     if (arm_feature(env, ARM_FEATURE_EL3)) {
         set_feature(env, ARM_FEATURE_VBAR);
+    }
+
+    /*
+     * QFlex: lower ID register fields from the id-overrides file. Done after
+     * all of QEMU's own ID register adjustments above, and before the ID
+     * registers are registered (their values are read from cpu->isar there).
+     */
+    if (cpu->id_overrides &&
+        !arm_cpu_apply_id_overrides(cpu, cpu->id_overrides, errp)) {
+        return;
     }
 
     register_cp_regs_for_features(cpu);
