@@ -28,6 +28,7 @@
 
 #include "qemu/osdep.h"
 #include "hw/boards.h"
+#include "hw/intc/qflex-gic.h"
 #include "exec/cpu-common.h"
 #include "net/net.h"
 #include "migration.h"
@@ -3144,6 +3145,9 @@ bool generate_gem5_checkpoint(const char *name, Error **errp)
         return false;
     }
     if (!gem5_dump_registers(gem_dir, errp)) {
+        return false;
+    }
+    if (!gem5_dump_gic(gem_dir, errp)) {
         return false;
     }
     if (!gem5_dump_devinfo(gem_dir, errp)) {
