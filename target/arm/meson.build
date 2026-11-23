@@ -25,6 +25,7 @@ arm_system_ss.add(files(
   'cortex-regs.c',
   'qflex-sysregs.c',
   'qflex-gic.c',
+  'qflex-virtio.c',
   'machine.c',
   'ptw.c',
 ))
