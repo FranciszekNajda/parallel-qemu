@@ -26,6 +26,7 @@ arm_system_ss.add(files(
   'qflex-sysregs.c',
   'qflex-gic.c',
   'qflex-virtio.c',
+  'qflex-uart-rtc.c',
   'machine.c',
   'ptw.c',
 ))

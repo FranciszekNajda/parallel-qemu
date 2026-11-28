@@ -30,6 +30,7 @@
 #include "hw/boards.h"
 #include "hw/intc/qflex-gic.h"
 #include "hw/virtio/qflex-virtio.h"
+#include "hw/char/qflex-uart-rtc.h"
 #include "exec/cpu-common.h"
 #include "net/net.h"
 #include "migration.h"
@@ -3102,6 +3103,9 @@ bool generate_gem5_checkpoint(const char *name, Error **errp)
         return false;
     }
     if (!gem5_dump_virtio(gem_dir, errp)) {
+        return false;
+    }
+    if (!gem5_dump_uart_rtc(gem_dir, errp)) {
         return false;
     }
 
